@@ -28,3 +28,4 @@ def create_logger():
     logger.addHandler(filehandler)
     logger.addHandler(console_handler)
     return logger
+logger = create_logger()
