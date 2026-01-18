@@ -1,9 +1,10 @@
 import sys
-from src.entity.config_entity import (DataIngestionConfig, DatavalidationCOnfig, DataTransformationConfig)
-from src.entity.artifact_entity import (DataIngestionArtifact, DataValidationArtifact, DataTransformationArtifact)
+from src.entity.config_entity import (DataIngestionConfig, DatavalidationCOnfig, DataTransformationConfig, ModelTrainerConfig)
+from src.entity.artifact_entity import (DataIngestionArtifact, DataValidationArtifact, DataTransformationArtifact, ModelTrainerArtifact)
 from  src.logger import logger
 from src.components.data_ingestion import Datainjestion
 from src.components.data_validation import Datavalidator
+from src.components.model_trainer import Model_Train
 from src.components.data_transformation import Data_Transformer
 from src.exception import MyException
 
@@ -42,6 +43,17 @@ class Training_pipeline:
             return data_transformation_Artifact
         except Exception as e:
             raise MyException(e, sys) from e
+        
+    def start_model_training(self,
+                              data_transformation_artifact: DataTransformationArtifact):
+        try:
+            model_trainer = Model_Train(model_trainer_config=ModelTrainerConfig,
+                                        data_transformation_artifact=data_transformation_artifact)
+            model_training_artifact = model_trainer.initiate_model_training()
+            logger.info('model training successful')
+            return model_training_artifact
+        except Exception as e:
+            raise MyException(e,sys)
 
         
     def run_pipeline(self):
@@ -50,8 +62,9 @@ class Training_pipeline:
             data_validation_artifact = self.start_data_validation( data_ingestion_artifact=data_injestion_artifact)
             data_transformation_artifact = self.start_data_transformation(data_injestion_artifact=data_injestion_artifact,
                                                                           data_validation_artifact=data_validation_artifact)
+            model_training_artifact = self.start_model_training(data_transformation_artifact=data_transformation_artifact)
 
-            return data_injestion_artifact, data_validation_artifact, data_transformation_artifact
+            return data_injestion_artifact, data_validation_artifact, data_transformation_artifact, model_training_artifact
         
         except Exception as e:
             raise MyException(e,sys)
