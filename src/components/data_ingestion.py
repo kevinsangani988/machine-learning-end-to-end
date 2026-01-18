@@ -84,7 +84,7 @@ class Datainjestion:
             
             logger.info(f"Data ingestion artifact: {dataInjestion_artifact}")
 
-            return DataIngestionArtifact
+            return dataInjestion_artifact
         
         except Exception as e:
             raise MyException(e,sys)
