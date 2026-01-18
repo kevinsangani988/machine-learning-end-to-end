@@ -17,6 +17,24 @@ columns:
   - poutcome : category
   - Target : category
 
+columns:
+  - age: int
+  - job: category
+  - marital: category
+  - education: category
+  - default: category
+  - balance: int
+  - housing: category
+  - loan: category
+  - contact: category
+  - day: float
+  - month: category
+  - duration: float
+  - campaign: int
+  - pdays : int
+  - previous : int
+  - poutcome : category
+  - Target : category
 
 numerical_columns:
   - age
@@ -39,8 +57,16 @@ categorical_columns:
   - poutcome
   - Target
 
+ohe_columns:
+  - job
+  - marital
+  - education
+  - default
+  - housing
+  - loan
+  - poutcome
+
 drop_columns: 
- - _id
  - contact
  - day
  - month

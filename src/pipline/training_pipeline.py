@@ -1,9 +1,10 @@
 import sys
-from src.entity.config_entity import (DataIngestionConfig, DatavalidationCOnfig)
-from src.entity.artifact_entity import (DataIngestionArtifact, DataValidationArtifact)
+from src.entity.config_entity import (DataIngestionConfig, DatavalidationCOnfig, DataTransformationConfig)
+from src.entity.artifact_entity import (DataIngestionArtifact, DataValidationArtifact, DataTransformationArtifact)
 from  src.logger import logger
 from src.components.data_ingestion import Datainjestion
 from src.components.data_validation import Datavalidator
+from src.components.data_transformation import Data_Transformer
 from src.exception import MyException
 
 class Training_pipeline:
@@ -31,12 +32,26 @@ class Training_pipeline:
         except Exception as e:
             raise MyException(e, sys) from e
         
+    def start_data_transformation(self, data_injestion_artifact: DataIngestionArtifact, data_validation_artifact: DataValidationArtifact):
+        try:
+            data_transformation = Data_Transformer(data_injestion_artifact=data_injestion_artifact,
+                                                  data_validation_artifact=data_validation_artifact,
+                                                  data_transformation_config=DataTransformationConfig)
+            data_transformation_Artifact = data_transformation.initiate_data_transformation()
+            logger.info("data transformation artifact done")
+            return data_transformation_Artifact
+        except Exception as e:
+            raise MyException(e, sys) from e
+
+        
     def run_pipeline(self):
         try:
             data_injestion_artifact = self.start_data_injestion()
             data_validation_artifact = self.start_data_validation( data_ingestion_artifact=data_injestion_artifact)
+            data_transformation_artifact = self.start_data_transformation(data_injestion_artifact=data_injestion_artifact,
+                                                                          data_validation_artifact=data_validation_artifact)
 
-            return data_injestion_artifact, data_validation_artifact
+            return data_injestion_artifact, data_validation_artifact, data_transformation_artifact
         
         except Exception as e:
             raise MyException(e,sys)
