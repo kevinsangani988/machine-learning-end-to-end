@@ -49,10 +49,11 @@ class Model_Train:
 
             model,metrics = self.model(test_arr=test_array,train_arr=train_array)
 
-            preprocessing_obj = load_object(file_path=self.data_transformation_artifact.transformed_object_file_path)
-            logger.info("Preprocessing obj loaded.")
+            ohe_obj = load_object(file_path=self.data_transformation_artifact.tranformed_ohe_object_file_path)
+            scaling_obj = load_object(file_path=self.data_transformation_artifact.transformed_scaling_object_file_path)
+            logger.info("OHE and scaling objects loaded.")
             logger.debug("Saving new model as performace is better than previous one.")
-            my_model = MyModel(preprocessing_object=preprocessing_obj, trained_model_object=model)
+            my_model = MyModel(ohe_object=ohe_obj, scaling_object=scaling_obj, trained_model_object=model)
             logger.info("Saved final model object that includes both preprocessing and the trained model")
             save_object(self.model_trainer_config.trained_model_file_path, my_model)
 

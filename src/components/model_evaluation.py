@@ -1,5 +1,5 @@
 from src.entity.config_entity import ModelEvaluationConfig
-from src.entity.artifact_entity import ModelTrainerArtifact, DataIngestionArtifact, ModelEvaluationArtifact
+from src.entity.artifact_entity import ModelTrainerArtifact, DataIngestionArtifact, ModelEvaluationArtifact, DataTransformationArtifact
 from sklearn.metrics import f1_score
 from src.exception import MyException
 from src.constants import TARGET_COLUMN
@@ -7,6 +7,7 @@ from src.logger import logger
 from src.utils.main_utils import load_object
 import sys
 import pandas as pd
+import numpy as np
 from typing import Optional
 from src.entity.s3_estimator import Proj1Estimator
 from dataclasses import dataclass
@@ -26,11 +27,13 @@ class ModelEvaluation:
 
     def __init__(self, model_eval_config: ModelEvaluationConfig,
                  data_injestion_artifact: DataIngestionArtifact,
-                 model_trainer_artifact: ModelTrainerArtifact):
+                 model_trainer_artifact: ModelTrainerArtifact,
+                 data_transformation_artifact: DataTransformationArtifact):
         try:
             self.model_eval_config = model_eval_config
             self.data_injestion_artifact = data_injestion_artifact
             self.model_trainer_artifact = model_trainer_artifact
+            self.data_transformation_artifact = data_transformation_artifact
             self._schema_config = read_yaml_file(file_path=SCHEMA_FILE_PATH)
         except Exception as e:
             raise MyException(e, sys) from e
@@ -56,17 +59,17 @@ class ModelEvaluation:
             logger.error('unexpected error occured in pdays_transformation')
             raise MyException(e,sys)
     
-    def column_ohe(self, df: pd.DataFrame):
-        try:
-            ohe = OneHotEncoder(handle_unknown='ignore', sparse_output=False, drop='first')
-            ohe_encoded = ohe.fit_transform(df[self._schema_config["ohe_columns"]])
-            columns = ohe.get_feature_names_out()
-            ohe_df = pd.DataFrame(ohe_encoded, columns=columns, index=df.index)
-            df = pd.concat([df, ohe_df], axis=1)
-            logger.info("correctly one hot encoded columns from our data")
-            return df
-        except Exception as e:
-            raise MyException(e,sys)
+    # def column_ohe(self, df: pd.DataFrame):
+    #     try:
+    #         ohe = OneHotEncoder(handle_unknown='ignore', sparse_output=False, drop='first')
+    #         ohe_encoded = ohe.fit_transform(df[self._schema_config["ohe_columns"]])
+    #         columns = ohe.get_feature_names_out()
+    #         ohe_df = pd.DataFrame(ohe_encoded, columns=columns, index=df.index)
+    #         df = pd.concat([df, ohe_df], axis=1)
+    #         logger.info("correctly one hot encoded columns from our data")
+    #         return df
+    #     except Exception as e:
+    #         raise MyException(e,sys)
     
     def map_target(self, df:pd.DataFrame):
         try:
@@ -78,8 +81,13 @@ class ModelEvaluation:
 
     def drop_cols(self,df:pd.DataFrame):
         try:
-            df = df.drop(columns=self._schema_config['drop_columns'])
-            logger.info(f"we have sucesfully removed {self._schema_config['drop_columns']}")
+            # Only drop columns that actually exist in the dataframe
+            cols_to_drop = [col for col in self._schema_config['drop_columns'] if col in df.columns]
+            if cols_to_drop:
+                df = df.drop(columns=cols_to_drop)
+                logger.info(f"we have sucesfully removed {cols_to_drop}")
+            else:
+                logger.info("No columns to drop - they were already removed by OHE pipeline")
             return df
         except Exception as e:
             raise MyException(e,sys)
@@ -95,14 +103,38 @@ class ModelEvaluation:
         """
         try:
             test_df = pd.read_csv(self.data_injestion_artifact.test_file_path)
-            x, y = test_df.drop(TARGET_COLUMN, axis=1), test_df[TARGET_COLUMN]
 
             logger.info("Test data loaded and now transforming it for prediction...")
 
-            x = self.column_ohe(df=test_df)
-            x = self.pdays_transformation(df=test_df)
-            x = self.map_target(df=test_df)
-            x = self.drop_cols(df=test_df)
+            # Apply custom transformations
+            x = test_df.copy()
+            x = self.pdays_transformation(df=x)
+            x = self.map_target(df=x)
+            
+            # Extract target
+            y = x[TARGET_COLUMN]
+            x_for_best_model = x.drop(columns=[TARGET_COLUMN], axis=1)
+            
+            # Prepare data for trained model (apply full transformations)
+            x_main = x_for_best_model.copy()
+            ohe_pipeline = load_object(self.data_transformation_artifact.tranformed_ohe_object_file_path)
+            logger.info("OHE pipeline loaded/exists.")
+            x_trained = ohe_pipeline.transform(x_main)
+            
+            # Convert to DataFrame with proper column names
+            if isinstance(x_trained, np.ndarray):
+                ohe_transformer = ohe_pipeline.named_steps['column transformation'].transformers_[0][1]
+                ohe_feature_names = ohe_transformer.get_feature_names_out(self._schema_config["ohe_columns"])
+                remaining_cols = [col for col in x_main.columns if col not in self._schema_config["ohe_columns"]]
+                all_feature_names = list(ohe_feature_names) + remaining_cols
+                x_trained = pd.DataFrame(x_trained, columns=all_feature_names, index=x_main.index)
+
+            x_trained = self.drop_cols(df=x_trained)
+
+            # Apply scaling for trained model
+            scaler_pipeline = load_object(self.data_transformation_artifact.transformed_scaling_object_file_path)
+            logger.info("Scaling pipeline loaded/exists.")
+            x_trained = scaler_pipeline.transform(x_trained)
 
             trained_model = load_object(file_path=self.model_trainer_artifact.trained_model_file_path)
             logger.info("Trained model loaded/exists.")
@@ -113,7 +145,8 @@ class ModelEvaluation:
             best_model = self.get_best_model()
             if best_model is not None:
                 logger.info(f"Computing F1_Score for production model..")
-                y_hat_best_model = best_model.predict(x)
+                # Pass data with only custom transformations (pdays, target mapping) so best_model can apply OHE and scaler internally
+                y_hat_best_model = best_model.predict(x_for_best_model)
                 best_model_f1_score = f1_score(y, y_hat_best_model)
                 logger.info(f"F1_Score-Production Model: {best_model_f1_score}, F1_Score-New Trained Model: {trained_model_f1_score}")
             
