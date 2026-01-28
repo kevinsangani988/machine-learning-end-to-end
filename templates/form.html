@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Prediction Form</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div class="page">
+    <div class="card">
+      <h1>Customer Prediction</h1>
+      <p class="subtitle">Fill the details and click Predict.</p>
+
+      <form method="post" action="/">
+        <div class="grid">
+
+          <!-- age -->
+          <div class="field">
+            <label for="age">Age</label>
+            <input type="number" id="age" name="age" min="0" required />
+          </div>
+
+          <!-- job -->
+          <div class="field">
+            <label for="job">Job</label>
+            <select id="job" name="job" required>
+              <option value="" disabled selected>Select job</option>
+              <option value="blue-collar">blue-collar</option>
+              <option value="management">management</option>
+              <option value="technician">technician</option>
+              <option value="admi.">admin</option>
+              <option value="services">services</option>
+              <option value="retired">retired</option>
+              <option value="self-employed">self-employed</option>
+              <option value="entrepreneur">entrepreneur</option>
+              <option value="unemployed">unemployed</option>
+              <option value="housemaid">housemaid</option>
+              <option value="student">student</option>
+              <option value="unknown">unknown</option>
+            </select>
+          </div>
+
+          <!-- marital -->
+          <div class="field">
+            <label for="marital">Marital</label>
+            <select id="marital" name="marital" required>
+              <option value="" disabled selected>Select marital status</option>
+              <option value="married">married</option>
+              <option value="single">single</option>
+              <option value="divorced">divorced</option>
+            </select>
+          </div>
+
+          <!-- education -->
+          <div class="field">
+            <label for="education">Education</label>
+            <select id="education" name="education" required>
+              <option value="" disabled selected>Select education</option>
+              <option value="secondary">secondary</option>
+              <option value="tertiary">tertiary</option>
+              <option value="primary">primary</option>
+              <option value="unknown">unknown</option>
+            </select>
+          </div>
+
+          <!-- default -->
+          <div class="field">
+            <label for="default">Default</label>
+            <select id="default" name="default" required>
+              <option value="" disabled selected>Select</option>
+              <option value="no">no</option>
+              <option value="yes">yes</option>
+            </select>
+          </div>
+
+          <!-- balance -->
+          <div class="field">
+            <label for="balance">Balance</label>
+            <input type="number" id="balance" name="balance" required />
+          </div>
+
+          <!-- housing -->
+          <div class="field">
+            <label for="housing">Housing Loan</label>
+            <select id="housing" name="housing" required>
+              <option value="" disabled selected>Select</option>
+              <option value="yes">yes</option>
+              <option value="no">no</option>
+            </select>
+          </div>
+
+          <!-- loan -->
+          <div class="field">
+            <label for="loan">Personal Loan</label>
+            <select id="loan" name="loan" required>
+              <option value="" disabled selected>Select</option>
+              <option value="no">no</option>
+              <option value="yes">yes</option>
+            </select>
+          </div>
+
+          <!-- contact -->
+          <div class="field">
+            <label for="contact">Contact</label>
+            <select id="contact" name="contact" required>
+              <option value="" disabled selected>Select contact</option>
+              <option value="cellular">cellular</option>
+              <option value="telephone">telephone</option>
+              <option value="unknown">unknown</option>
+            </select>
+          </div>
+
+          <!-- day -->
+          <div class="field">
+            <label for="day">Day (1-31)</label>
+            <input type="number" id="day" name="day" min="1" max="31" required />
+          </div>
+
+          <!-- month -->
+          <div class="field">
+            <label for="month">Month</label>
+            <select id="month" name="month" required>
+              <option value="" disabled selected>Select month</option>
+              <option value="jan">jan</option>
+              <option value="feb">feb</option>
+              <option value="mar">mar</option>
+              <option value="apr">apr</option>
+              <option value="may">may</option>
+              <option value="jun">jun</option>
+              <option value="jul">jul</option>
+              <option value="aug">aug</option>
+              <option value="sep">sep</option>
+              <option value="oct">oct</option>
+              <option value="nov">nov</option>
+              <option value="dec">dec</option>
+            </select>
+          </div>
+
+          <!-- duration -->
+          <div class="field">
+            <label for="duration">Duration (1-190)</label>
+            <input type="number" id="duration" name="duration" min="1" max="190" required />
+          </div>
+
+          <!-- campaign -->
+          <div class="field">
+            <label for="campaign">Campaign</label>
+            <input type="number" id="campaign" name="campaign" min="0" required />
+          </div>
+
+          <!-- pdays -->
+          <div class="field">
+            <label for="pdays">Pdays</label>
+            <input type="number" id="pdays" name="pdays" min="0" required />
+          </div>
+
+          <!-- previous -->
+          <div class="field">
+            <label for="previous">Previous</label>
+            <input type="number" id="previous" name="previous" min="0" required />
+          </div>
+
+          <!-- poutcome -->
+          <div class="field">
+            <label for="poutcome">Previous Outcome (poutcome)</label>
+            <select id="poutcome" name="poutcome" required>
+              <option value="" disabled selected>Select outcome</option>
+              <option value="unknown">unknown</option>
+              <option value="failure">failure</option>
+              <option value="other">other</option>
+              <option value="success">success</option>
+            </select>
+          </div>
+
+        </div>
+
+        <div class="actions">
+          <button class="btn" type="submit">Predict</button>
+          <button class="btn btn-secondary" type="reset">Reset</button>
+        </div>
+      </form>
+
+      <!-- Jinja result area (optional) -->
+      {% if context %}
+        <div class="result">
+          <h2>Result: {{ context }}</h2>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</body>
+</html>

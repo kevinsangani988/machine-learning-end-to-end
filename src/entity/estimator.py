@@ -35,6 +35,13 @@ class MyModel:
         """
         try:
             logging.info("Starting prediction process.")
+            
+            # Step 0: Apply pdays_transformation if not already done
+            # Create pdays_unknown column from pdays
+            if 'pdays_unknown' not in dataframe.columns and 'pdays' in dataframe.columns:
+                logging.info("Applying pdays_transformation")
+                dataframe = dataframe.copy()
+                dataframe['pdays_unknown'] = dataframe['pdays'].apply(lambda x: 0 if x == -1 else x)
 
             # Step 1: Apply OHE transformations using the pre-trained OHE object
             logging.info("Applying OHE transformations")
@@ -44,21 +51,30 @@ class MyModel:
             if isinstance(transformed_feature, np.ndarray):
                 # Get column names from the OHE pipeline's ColumnTransformer
                 try:
-                    # Get OHE feature names
-                    ohe_transformer = self.ohe_object.named_steps['column transformation'].transformers_[0][1]
-                    ohe_feature_names = list(ohe_transformer.get_feature_names_out())
-                    
-                    # Get numeric columns that passed through (not OHE'd)
-                    # These are columns from input dataframe that aren't in the OHE list
-                    ohe_columns = set(['job', 'marital', 'education', 'default', 'housing', 'loan', 'poutcome'])
-                    remaining_cols = [col for col in dataframe.columns if col not in ohe_columns]
-                    
-                    # Combine all feature names
-                    all_feature_names = ohe_feature_names + remaining_cols
+                    # Get all feature names from the OHE pipeline
+                    ct = self.ohe_object.named_steps['column transformation']
+                    all_feature_names = list(ct.get_feature_names_out())
                     transformed_feature = pd.DataFrame(transformed_feature, columns=all_feature_names)
-                except:
-                    # Fallback if unable to extract column names
+                    logging.info(f"OHE DataFrame created with {len(all_feature_names)} columns")
+                except Exception as e:
+                    logging.warning(f"Could not extract column names from OHE: {e}. Creating unnamed DataFrame.")
                     transformed_feature = pd.DataFrame(transformed_feature)
+
+            # Step 1.5: Drop columns that should not be passed to scaler
+            # These columns were dropped during training before fitting the scaler
+            drop_columns_list = ['contact', 'day', 'month', 'pdays']
+            cols_to_drop = [col for col in drop_columns_list if col in transformed_feature.columns]
+            if cols_to_drop:
+                logging.info(f"Dropping columns before scaling: {cols_to_drop}")
+                transformed_feature = transformed_feature.drop(columns=cols_to_drop)
+            
+            # Ensure it's still a DataFrame with column names
+            if not isinstance(transformed_feature, pd.DataFrame):
+                logging.error("transformed_feature is not a DataFrame after drop operation")
+                raise ValueError("Transformation resulted in non-DataFrame object")
+                
+            logging.info(f"Before scaling: shape={transformed_feature.shape}, columns count={len(transformed_feature.columns)}")
+            logging.info(f"Column names: {list(transformed_feature.columns)}")
 
             # Step 2: Apply scaling transformations using the pre-trained scaling object
             logging.info("Applying scaling transformations")
